@@ -22,7 +22,7 @@ QNN context binaries (`.bin`) for running the ViiTorVoice-NAR text-to-speech / v
 chain entirely on a Snapdragon 8 Elite (SM8750) Hexagon NPU: **w2v-BERT semantic encoder →
 dualcodec encode-core → 32-step masked-diffusion NAR → dualcodec decoder**.
 
-Compiled with QAIRT 2.50 / qai-hub (`onnx → dlc → qairt-dlc-prepare → .bin`), tested on
+Compiled with QAIRT 2.51 / qai-hub (`onnx → dlc → qairt-dlc-prepare → .bin`), tested on
 Android 16 with a `com.viitorvoice.demo` app that loads these through `QnnContext_createFromBinary`.
 
 ## Files
@@ -40,6 +40,23 @@ Hub: <https://huggingface.co/mistmlm/viitorvoice-nar-sm8750> (private) — `push
 
 See `MANIFEST.md` for sizes + sha256, `install.sh` to copy the set into an Android app's
 private dir (`/data/data/<pkg>/files/models`) with correct owner/SELinux label.
+
+## Uploading off phone without burning VPN quota
+
+The phone routes everything through a TUN proxy, but the proxy has a traffic quota and
+the model set is ~2.85 GB. `net/` solves it with a local CONNECT proxy that splits planes:
+
+* `huggingface.co` (SNI-blocked, a few KB of API calls) → default route / VPN
+* everything else (`*.hf.co`, `*.xethub.hf.co`, `*.amazonaws.com`) → `SO_BINDTODEVICE wlan0`
+  with a real direct IP (UDP DNS to 223.5.5.5, never the fake-ip system resolver)
+
+```sh
+sudo python3 net/pinproxy.py &          # needs root for SO_BINDTODEVICE
+net/upload_loop.sh                      # xet upload with retry (hf has no built-in retry)
+```
+
+Measured on 2026-11-14: 2.85 GB at 1.4–3.6 MB/s, **0.1 MB total through the VPN**.
+See `verify.sh` (local sha256) and the API check in the playbook memory for post-upload validation.
 
 ## Precision policy
 
