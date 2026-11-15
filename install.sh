@@ -14,6 +14,9 @@ G=$(sudo stat -c %g "/data/data/$PKG")
 
 echo "-> $DST  ($U:$G)"
 sudo mkdir -p "$DST"
+# mkdir -p creates files/ as root too; the app needs to write beside models/
+# (clone.wav, encode_trace.txt), so hand the parent back as well.
+sudo chown "$U:$G" "/data/data/$PKG/files"
 sudo cp -f "$SRC"/*.bin "$DST/"
 sudo cp -f "$SRC/nar_steps" "$DST/"
 sudo chown -R "$U:$G" "$DST"
